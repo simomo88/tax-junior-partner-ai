@@ -122,7 +122,13 @@ def init():
     type=float,
     help="Requests per second rate limit",
 )
-def scrape(output_dir: str, rate_limit: float):
+@click.option(
+    "--verify",
+    is_flag=True,
+    default=False,
+    help="Verify pages (URL, HTTP status, title, detected docs) before downloading",
+)
+def scrape(output_dir: str, rate_limit: float, verify: bool):
     """Download the latest documents from Agenzia Entrate.
     
     Downloads interpelli, circolari, and risoluzioni and saves them as JSON files.
@@ -140,21 +146,30 @@ def scrape(output_dir: str, rate_limit: float):
         )
         
         # Run async scraper
-        results = asyncio.run(scraper.scrape())
+        results = asyncio.run(scraper.scrape(verify=verify))
         
         # Display results
         click.echo("\n✅ Scraping completed!\n")
+        # If verify mode, show verification details if present
+        if verify and "verifications" in results:
+            click.echo("Verification results:")
+            for v in results["verifications"]:
+                click.echo(f"- URL: {v['url']}")
+                click.echo(f"  Status: {v['status_code']}")
+                click.echo(f"  Title: {v['title']}")
+                click.echo(f"  Detected docs: {v['detected_docs']}\n")
+
         click.echo("Downloaded:")
-        click.echo(f"  • {results['interpelli']} interpelli")
-        click.echo(f"  • {results['circolari']} circolari")
-        click.echo(f"  • {results['risoluzioni']} risoluzioni")
+        click.echo(f"  • {results.get('interpelli', 0)} interpelli")
+        click.echo(f"  • {results.get('circolari', 0)} circolari")
+        click.echo(f"  • {results.get('risoluzioni', 0)} risoluzioni")
         
-        if results["errors"] > 0:
+        if results.get("errors", 0) > 0:
             click.echo(f"\n⚠️  Errors encountered: {results['errors']}")
         
         click.echo(f"\n📁 Documents saved to: {output_dir}\n")
         
-        if results['interpelli'] + results['circolari'] + results['risoluzioni'] == 0:
+        if results.get('interpelli', 0) + results.get('circolari', 0) + results.get('risoluzioni', 0) == 0:
             click.echo("⚠️  No documents were downloaded. Check logs for details.\n")
             return
         
