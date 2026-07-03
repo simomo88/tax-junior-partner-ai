@@ -9,13 +9,14 @@ requests==2.31.0
 httpx==0.25.0
 
 # Vector Database & Search
-chroma-db==0.4.10
-sentence-transformers==2.2.2
-numpy==1.24.3
+# chromadb and sentence-transformers removed temporarily to avoid dependency conflicts
+# chromadb==0.4.10
+# sentence-transformers==2.2.2
+numpy==1.26.4
 scipy==1.11.4
 
 # Data Processing
-pandas==2.1.0
+pandas==2.2.3
 python-dateutil==2.8.2
 
 # Web Scraping
