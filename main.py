@@ -10,6 +10,7 @@ import click
 from config.settings import settings
 from src.utils.logger import setup_logging
 from src.core.tax_agent import TaxAgent
+from src.services.scrapers.agenzia_entrate import AgenziaScraper
 
 # Setup logging
 setup_logging(
@@ -107,6 +108,62 @@ def init():
     click.echo("✓ Logging configured")
     click.echo("✓ Configuration loaded")
     click.echo("\nSetup complete! Run 'python main.py status' to verify.\n")
+
+
+@cli.command()
+@click.option(
+    "--output-dir",
+    default="data/raw/agenzia_entrate",
+    help="Output directory for scraped documents",
+)
+@click.option(
+    "--rate-limit",
+    default=1.0,
+    type=float,
+    help="Requests per second rate limit",
+)
+def scrape(output_dir: str, rate_limit: float):
+    """Download the latest documents from Agenzia Entrate.
+    
+    Downloads interpelli, circolari, and risoluzioni and saves them as JSON files.
+    
+    Examples:
+        python main.py scrape
+        python main.py scrape --output-dir ./data --rate-limit 0.5
+    """
+    click.echo("\n🔄 Starting Agenzia Entrate scraper...\n")
+    
+    try:
+        scraper = AgenziaScraper(
+            output_dir=Path(output_dir),
+            requests_per_second=rate_limit,
+        )
+        
+        # Run async scraper
+        results = asyncio.run(scraper.scrape())
+        
+        # Display results
+        click.echo("\n✅ Scraping completed!\n")
+        click.echo("Downloaded:")
+        click.echo(f"  • {results['interpelli']} interpelli")
+        click.echo(f"  • {results['circolari']} circolari")
+        click.echo(f"  • {results['risoluzioni']} risoluzioni")
+        
+        if results["errors"] > 0:
+            click.echo(f"\n⚠️  Errors encountered: {results['errors']}")
+        
+        click.echo(f"\n📁 Documents saved to: {output_dir}\n")
+        
+        if results['interpelli'] + results['circolari'] + results['risoluzioni'] == 0:
+            click.echo("⚠️  No documents were downloaded. Check logs for details.\n")
+            return
+        
+        click.echo("✨ Done!\n")
+    
+    except Exception as e:
+        logger.error(f"Scraping failed: {e}", exc_info=True)
+        click.echo(f"\n❌ Error: {e}\n")
+        raise
 
 
 if __name__ == "__main__":

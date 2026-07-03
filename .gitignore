@@ -118,16 +118,12 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
 # Project specific
 data/
 logs/
-.env.local
-.env.*.local
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
