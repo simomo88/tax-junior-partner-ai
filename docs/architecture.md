@@ -1,52 +1,81 @@
-# Architecture Documentation
+# Architecture Documentation - Tax Junior Partner AI
+
+## Mission Clarification
+
+**Objective:** Build a "Tax Junior Partner AI" - not a chatbot, but an intelligent assistant that reasons like a junior tax advisor.
+
+---
 
 ## System Design
 
-Tax Junior Partner AI è architettato come un sistema modulare con separazione chiara delle responsabilità.
+Tax Junior Partner AI è architettato come un sistema modulare specializzato per il ragionamento fiscale:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        User Interface                        │
-│                   (CLI / Web / Chat API)                     │
-└──────────────────────┬──────────────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────────┐
-│                    Tax Agent (Orchestrator)                 │
-│              Coordina tutti i componenti                     │
-└──────────────────┬──────────────────┬──────────────────────┘
-                   │                  │
-      ┌────────────▼────────┐   ┌─────▼──────────────┐
-      │  News Aggregator   │   │  Risk Analyzer     │
-      │  & Scraper         │   │  & Tesis Generator │
-      │  - Agenzia Entrate │   │  - Pro & Contra    │
-      │  - Circolari       │   │  - Risk Points     │
-      │  - Sentenze        │   │  - Checklist       │
-      └────────────┬────────┘   └─────┬──────────────┘
-                   │                  │
-      ┌────────────▼──────────────────▼────────────┐
-      │         Knowledge Base & Storage           │
-      │  - Vector Store (Chroma / Weaviate)       │
-      │  - Document Repository                     │
-      │  - Metadata Index                          │
-      └────────────┬──────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        User Interface                                           │
+│                   (CLI / Web / Chat API)                                        │
+└─────────────────────────────────────┬──────────────────────────────────────────┘
+                                      │
+┌─────────────────────────────────────▼──────────────────────────────────────────┐
+│                    Tax Agent (Orchestrator)                                     │
+│              Coordina flusso di ragionamento fiscale                            │
+└──────────────────────┬──────────────────┬──────────────────┬───────────────────┘
+                       │                  │                  │
+      ┌────────────────▼────────┐  ┌─────▼──────────────┐ ┌──▼────────────────┐
+      │  Retrieval Layer        │  │  Tax Reasoning     │ │ Studio Memory      │
+      │                         │  │                    │ │                    │
+      │ - Chunker               │  │ - Pro/Contra       │ │ - Clients          │
+      │ - Semantic Search       │  │ - Risk Scoring     │ │ - Cases            │
+      │ - Reranker              │  │ - Missing Docs     │ │ - Precedents       │
+      │ - Hybrid Search         │  │ - Checklists       │ │ - Notes            │
+      └────────────┬────────────┘  └─────┬──────────────┘ └──┬────────────────┘
+                   │                      │                   │
+      ┌────────────▼──────────────────────▼───────────────────▼────────┐
+      │         Knowledge Base            │                           │
+      │   (Vector Store + Metadata)       │   Client Impact Analysis  │
+      │   - Chroma (Embedded)             │   - Client Mapper         │
+      │   - Document Repository           │   - Impact Analyzer       │
+      │   - Metadata Index                │                           │
+      └────────────┬──────────────────────┴───────────────────────────┘
                    │
-      ┌────────────▼──────────────────────────────┐
-      │         LLM & Services Layer              │
-      │  - LLM Provider (OpenAI / Anthropic)     │
-      │  - Embeddings (OpenAI / HuggingFace)     │
-      │  - External APIs (Agenzia Entrate)      │
-      └───────────────────────────────────────────┘
+      ┌────────────▼──────────────────────────────────┐
+      │       Morning Briefing Module                 │
+      │                                               │
+      │ - Daily Briefing Generator                    │
+      │ - Relevance Scoring                           │
+      │ - Priority Ranking                            │
+      └────────────┬──────────────────────────────────┘
+                   │
+      ┌────────────▼──────────────────────────────────┐
+      │    Data Collection & Normalization            │
+      │                                               │
+      │  services/scrapers/                           │
+      │  ├── agenzia_entrate.py                       │
+      │  ├── cassazione.py                            │
+      │  ├── normattiva.py                            │
+      │  └── sole24ore.py                             │
+      └────────────┬──────────────────────────────────┘
+                   │
+      ┌────────────▼──────────────────────────────────┐
+      │      LLM & Services Layer                     │
+      │                                               │
+      │  - LLM Provider (OpenAI/Anthropic)            │
+      │  - Embeddings (OpenAI/HuggingFace)            │
+      │  - External APIs                              │
+      └───────────────────────────────────────────────┘
 ```
+
+---
 
 ## Core Components
 
 ### 1. **TaxAgent (Orchestrator)**
 
 **Responsabilità:**
-- Coordina il flusso di esecuzione
+- Coordina il flusso di ragionamento fiscale
 - Mantiene lo stato della conversazione
 - Delega ai moduli specializzati
-- Gestisce context e memoria
+- Gestisce context e memoria del junior partner
 
 **Interfaccia:**
 ```python
@@ -55,79 +84,226 @@ class TaxAgent:
     async def analyze_tax_issue(issue: TaxIssue) -> RiskAnalysis
     async def get_daily_briefing() -> DailyBriefing
     async def search_knowledge_base(query: str) -> SearchResults
+    async def check_client_impact(issue: TaxIssue) -> ClientImpact
 ```
 
-### 2. **NewsAggregator**
+---
 
-**Responsabilità:**
-- Scraping fonti ufficiali
-- Classificazione automatica
-- Deduplicazione
-- Memorizzazione KB
+## 1. Retrieval Layer
 
-**Fonti (MVP):**
-- Agenzia Entrate (Interpelli, Circolari)
-- Gazzetta Ufficiale
-- Riviste specializzate (API)
+**Posizione:** `src/retrieval/`
 
-**Output:** DailyBriefing con items classificati per tema
+**Componenti:**
 
-### 3. **RiskAnalyzer**
+#### `chunker.py`
+- Intelligente document chunking
+- Preservation di contesto legale
+- Metadata propagation
+- Support per molteplici tipi di documento
 
-**Responsabilità:**
+#### `semantic_search.py`
+- Query embedding
+- Similarity scoring
+- Top-K retrieval
+- Confidence scoring
+
+#### `reranker.py`
+- Cross-encoder reranking
+- Tax-specific relevance signals
+- Source credibility scoring
+- Temporal relevance weighting
+
+#### `hybrid_search.py`
+- Combined BM25 + semantic search
+- Weighted fusion
+- Query expansion
+- Boolean logic support
+
+**Purpose:**
+- Efficiente document retrieval
+- Ranking di fonti per credibilità
+- Minimizzare hallucinations
+- Fondazione per citazioni accurate
+
+---
+
+## 2. Studio Memory
+
+**Posizione:** `src/studio_memory/`
+
+**Componenti:**
+
+#### `clients.py`
+- Profilo cliente (settore, dimensione, complessità)
+- Storico questioni
+- Preferenze di comunicazione
+- Risk profile
+
+#### `cases.py`
+- Questioni fiscali risolte
+- Outcome e risultati
+- Lessons learned
+- Pattern recognition
+
+#### `precedents.py`
+- Internal precedents (interpelli, circolari)
+- Giurisprudenza rilevante
+- Administrative rulings
+- Posizioni consolidate dello studio
+
+#### `notes.py`
+- Annotazioni junior partner
+- Research findings
+- Tag e categorizzazione
+- Linked references
+
+**Purpose:**
+- Ricordare casi precedenti
+- Evitare di ripetere errori
+- Build institutional knowledge
+- Personalize analysis per client
+
+---
+
+## 3. Morning Briefing
+
+**Posizione:** `src/briefing/`
+
+**Componenti:**
+
+#### `morning_brief.py`
+- Aggregazione notizie overnight
+- Personalized per tema/area
+- Classificazione per urgenza
+- Auto-categorization
+
+#### `relevance_scorer.py`
+- Score rilevanza per studio
+- Score rilevanza per singoli client
+- Trend detection
+- Impact estimation
+
+**Purpose:**
+- Keep updated su sviluppi
+- Prioritize important tax news
+- Identify client impacts early
+- Enable proactive advising
+
+---
+
+## 4. Tax Reasoning
+
+**Posizione:** `src/reasoning/`
+
+**Componenti:**
+
+#### `favorable_position.py`
 - Generazione tesi favorevole
+- Pro arguments with citations
+- Supporting evidence gathering
+- Caveat identification
+
+#### `contrary_position.py`
 - Generazione tesi contraria
-- Identificazione punti di rischio
-- Creazione checklist compliance
-- Citazione fonti
+- Counter-arguments
+- Challenging evidence
+- Revenue authority perspective
 
-**Prompt Chain:**
-1. Understanding → Analizza il quesito
-2. Research → Cerca nel KB
-3. Tesis Generation → Genera pro/contro
-4. Risk Identification → Identifica rischi
-5. Checklist → Crea checklist
+#### `risk_score.py`
+- Risk quantification (0-100)
+- Confidence interval
+- Exposure estimation
+- Probability assessment
 
-### 4. **VectorStore Interface**
+#### `missing_documents.py`
+- Identify documentation gaps
+- Suggest documentation strategy
+- Evidence collection plan
+- Protection recommendations
 
-**Responsabilità:**
-- Astrazione db vettoriale
-- CRUD operazioni
-- Semantic search
-- Metadata filtering
+#### `checklist_generator.py`
+- Compliance checklist
+- Documentation requirements
+- Timeline & deadlines
+- Escalation triggers
 
-**Implementazioni supportate:**
-- Chroma (local-first, embedded)
-- Weaviate (scalable, self-hosted)
-- Future: Pinecone, Supabase
+**Purpose:**
+- Reason come un junior tax advisor
+- Balance pro/contro perspectives
+- Structured risk analysis
+- Actionable recommendations
 
-### 5. **LLM Provider**
+---
 
-**Responsabilità:**
-- Interfaccia unificata LLM
-- Token counting
-- Rate limiting
-- Fallback handling
-- Cost tracking
+## 5. Client Impact Analysis
 
-**Implementazioni:**
-- OpenAI GPT-4 / GPT-3.5
-- Anthropic Claude
-- Future: Local models (Ollama)
+**Posizione:** `src/client_impact/`
 
-### 6. **News Scraper**
+**Componenti:**
 
-**Responsabilità:**
-- Web scraping
-- Parsing documenti
-- Estrarre metadata (data, numero, URL)
-- Normalizzazione formato
+#### `client_mapper.py`
+- Map tax development → affected clients
+- Sector/activity matching
+- Threshold identification
+- Priority ranking
 
-**Tecnologie:**
-- BeautifulSoup4 per parsing HTML
-- Requests per HTTP
-- Selenium per JS-heavy sites
-- AsyncIO per parallelizzazione
+#### `impact_analyzer.py`
+- Quantify potential impact
+- Financial exposure
+- Compliance implications
+- Recommended actions
+
+**Purpose:**
+- Identify relevant clients per news
+- Proactive client notifications
+- Enable targeted consultations
+- Build advisory partnerships
+
+---
+
+## 6. Data Collection & Normalization
+
+**Posizione:** `services/scrapers/`
+
+**Componenti:**
+
+#### `agenzia_entrate.py`
+- Agenzia Entrate interpelli
+- Circolari e risoluzioni
+- Press releases
+- Normative updates
+
+#### `cassazione.py`
+- Corte di Cassazione rulings
+- Regional court decisions
+- Administrative case law
+- Judicial precedents
+
+#### `normattiva.py`
+- Italian legislation
+- Decree updates
+- Regulatory changes
+- Legislative history
+
+#### `sole24ore.py`
+- Tax news & analysis
+- Industry publications
+- Expert commentary
+- Market insights
+
+**Technology Stack (MVP):**
+- **HTTP Client:** `requests` (no Selenium)
+- **HTML Parsing:** `BeautifulSoup4`
+- **Async I/O:** `asyncio`
+- **Rate Limiting:** Built-in
+- **Caching:** Local disk cache
+
+**MVP Simplification:**
+- ✅ **KEEP:** Chroma, Requests, BeautifulSoup
+- ❌ **REMOVE:** Weaviate (use Chroma locally)
+- ❌ **REMOVE:** Selenium (static parsing only)
+
+---
 
 ## Data Models
 
@@ -137,14 +313,15 @@ class TaxDocument(BaseModel):
     id: str  # UUID
     title: str
     content: str
-    source: str  # "agenzia-entrate", "circolare", etc
-    document_type: str  # "interpello", "risoluzione", etc
+    source: str  # "agenzia-entrate", "cassazione", etc
+    document_type: str  # "interpello", "sentenza", etc
     publication_date: datetime
     url: str
     tags: List[str]
     extracted_topics: List[str]
     relevance_score: float
     metadata: Dict[str, Any]
+    credibility_score: float  # Source trustworthiness
 ```
 
 ### SearchResult
@@ -154,6 +331,7 @@ class SearchResult(BaseModel):
     similarity_score: float
     reasoning: str
     confidence: float
+    rank: int  # After reranking
 ```
 
 ### RiskAnalysis
@@ -163,11 +341,26 @@ class RiskAnalysis(BaseModel):
     pro_thesis: str
     contra_thesis: str
     risk_points: List[RiskPoint]
+    risk_score: float  # 0-100
     confidence: float
     source_documents: List[TaxDocument]
+    missing_documents: List[str]
     checklist: List[ChecklistItem]
     recommendations: List[str]
 ```
+
+### ClientImpact
+```python
+class ClientImpact(BaseModel):
+    tax_development: TaxDocument
+    affected_clients: List[str]
+    impact_severity: str  # "high", "medium", "low"
+    recommended_action: str
+    financial_exposure: Optional[float]
+    timeline: str
+```
+
+---
 
 ## Development Phases
 
@@ -180,21 +373,81 @@ class RiskAnalysis(BaseModel):
 - Logging infrastructure
 
 ### Phase 2: MVP Features (Weekend 2)
-- News scraper (Agenzia Entrate)
+- Retrieval Layer (basic implementation)
+- News scrapers (4 sources)
 - Knowledge base CRUD
-- Semantic search (basic)
-- Risk analyzer (core logic)
+- Tax Reasoning (pro/contra + risk scoring)
+- Studio Memory (basic clients & cases)
+- CLI interface
 - End-to-end integration
-- CLI interface basic
 
-### Phase 3: Production Ready
+### Phase 3: Advanced (Week 3+)
+- Reranking + Hybrid Search
+- Morning Briefing + Client Impact
+- Advanced precedent matching
 - Production embeddings
-- Advanced scraping
-- Caching & optimization
-- Error handling & resilience
-- Monitoring & alerting
-- API server (FastAPI)
+- Web API (FastAPI)
 - Web UI
+
+---
+
+## Repository Structure
+
+```
+tax-junior-partner-ai/
+├── src/
+│   ├── core/
+│   │   └── tax_agent.py          # Orchestrator
+│   ├── retrieval/
+│   │   ├── chunker.py
+│   │   ├── semantic_search.py
+│   │   ├── reranker.py
+│   │   └── hybrid_search.py
+│   ├── reasoning/
+│   │   ├── favorable_position.py
+│   │   ├── contrary_position.py
+│   │   ├── risk_score.py
+│   │   ├── missing_documents.py
+│   │   └── checklist_generator.py
+│   ├── studio_memory/
+│   │   ├── clients.py
+│   │   ├── cases.py
+│   │   ├── precedents.py
+│   │   └── notes.py
+│   ├── briefing/
+│   │   ├── morning_brief.py
+│   │   └── relevance_scorer.py
+│   ├── client_impact/
+│   │   ├── client_mapper.py
+│   │   └── impact_analyzer.py
+│   ├── data/
+│   │   ├── vector_store.py
+│   │   ├── models.py
+│   │   └── knowledge_base.py
+│   ├── services/
+│   │   ├── llm_provider.py
+│   │   └── scrapers/
+│   │       ├── agenzia_entrate.py
+│   │       ├── cassazione.py
+│   │       ├── normattiva.py
+│   │       └── sole24ore.py
+│   └── utils/
+│       ├── config.py
+│       ├── logger.py
+│       └── exceptions.py
+├── tests/
+├── docs/
+│   ├── architecture.md
+│   └── mvp_roadmap.md
+├── config/
+│   └── settings.py
+├── requirements.txt
+├── .env.example
+├── main.py
+└── README.md
+```
+
+---
 
 ## Error Handling Strategy
 
@@ -220,6 +473,8 @@ class RiskAnalysis(BaseModel):
    - Cache misses
    - Metadata extraction failures
 
+---
+
 ## Performance Considerations
 
 ### Scalability
@@ -240,6 +495,8 @@ class RiskAnalysis(BaseModel):
 - Cache hit rates
 - Error rates per component
 
+---
+
 ## Security Considerations
 
 - Environment variables per secrets (no hardcoding)
@@ -249,12 +506,16 @@ class RiskAnalysis(BaseModel):
 - Document access control (future)
 - Audit logging per analisi
 
+---
+
 ## Future Extensions
 
 - **Multi-language** → Italian + English
-- **RAG Advanced** → Hybrid search (BM25 + semantic)
+- **RAG Advanced** → More sophisticated fusion strategies
 - **Document Upload** → Internal docs indexing
 - **Collaborative Features** → Team annotations
-- **Reporting** → PDF/Word export
+- **Reporting** → PDF/Word export with citations
 - **Integration** → Slack, Teams, Email
 - **Mobile** → App version
+- **Advanced Reasoning** → Full logical argumentation
+- **Precedent Discovery** → Automated pattern matching

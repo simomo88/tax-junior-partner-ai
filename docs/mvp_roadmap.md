@@ -1,12 +1,37 @@
-# MVP Roadmap: 1-2 Weekends Implementation Plan
+# MVP Roadmap: Tax Junior Partner AI - 1-2 Weekends Implementation
 
 ## Obiettivo MVP
 
 Un sistema minimale funzionante che dimostra:
-1. Aggregazione notizie fiscali (mock + base reale)
+1. Aggregazione notizie fiscali da 4 fonti
 2. Knowledge base con semantic search (Chroma + embeddings mock)
-3. Risk analyzer che genera tesi pro/contro
-4. CLI interface per testing
+3. Tax reasoning che genera tesi pro/contro + risk scoring
+4. Studio Memory base (clients & cases)
+5. CLI interface per testing
+6. Simplified stack: NO Weaviate, NO Selenium
+
+---
+
+## MVP Scope Changes
+
+### ✅ KEEP
+- Chroma (embedded vector store)
+- Requests (HTTP client)
+- BeautifulSoup4 (HTML parsing)
+- Async processing
+
+### ❌ REMOVE from MVP
+- Weaviate (use Chroma locally instead)
+- Selenium (use BeautifulSoup only, static sites)
+
+### ✨ NEW in MVP
+- Retrieval Layer (chunker, semantic_search, reranker structure)
+- Tax Reasoning modules (favorable_position, contrary_position, risk_score, checklist_generator)
+- Studio Memory (basic clients.py, cases.py)
+- Client Impact Analysis (mapper + analyzer)
+- 4 specialized scrapers (agenzia_entrate, cassazione, normattiva, sole24ore)
+
+---
 
 ## Timeline Dettagliato
 
@@ -14,7 +39,7 @@ Un sistema minimale funzionante che dimostra:
 
 #### Venerdì 2h
 - ✅ Repository setup completato
-- ✅ Folder structure creata
+- ✅ Folder structure creata (with new modules)
 - ✅ Git workflows e contributing guidelines
 - ✅ CI/CD baseline (GitHub Actions stubs)
 
@@ -42,11 +67,11 @@ Un sistema minimale funzionante che dimostra:
 - **Testing:** Integration tests con Chroma
 
 #### Domenica Pomeriggio 3h
-- ✅ Data models (TaxDocument, SearchResult, RiskAnalysis)
+- ✅ Data models (TaxDocument, SearchResult, RiskAnalysis, ClientImpact)
 - ✅ Pydantic validators
 - ✅ Serialization/deserialization
 - ✅ Mock data fixtures
-- **Output:** `src/data/models/` + test fixtures
+- **Output:** `src/data/models.py` + test fixtures
 - **Testing:** Model validation tests
 
 #### Domenica Sera 2h
@@ -64,15 +89,26 @@ Un sistema minimale funzionante che dimostra:
 ### 🎯 Weekend 2: MVP Features & Integration
 
 #### Sabato Mattina 4h
-- ✅ News Scraper interface
-- ✅ AgenziaEntrate scraper (HTML parser)
-- ✅ Mock news scraper (test data)
-- ✅ Document extraction logic
-- **Output:** `src/services/news_scraper.py`
-- **Testing:** Unit tests per parsing
-- **Deliverable:** Scraper che estrae ≥5 items da Agenzia Entrate
+- ✅ Retrieval Layer (basic semantic_search.py)
+- ✅ Chunker interface (basic implementation)
+- ✅ Query embedding pipeline
+- ✅ Mock embeddings for MVP
+- **Output:** `src/retrieval/` modules
+- **Testing:** Unit tests per retrieval
 
 #### Sabato Pomeriggio 4h
+- ✅ 4 Specialized Scrapers
+  - AgenziaEntrate (interpelli, circolari)
+  - Cassazione (court rulings)
+  - Normattiva (legislation)
+  - Sole24Ore (tax news)
+- ✅ Mock scrapers (test data)
+- ✅ Document extraction logic
+- **Output:** `src/services/scrapers/` - 4 files
+- **Testing:** Unit tests per parsing
+- **Deliverable:** Scraper che estrae ≥5 items per fonte
+
+#### Domenica Mattina 4h
 - ✅ Knowledge Base CRUD layer
 - ✅ Document ingestion pipeline
 - ✅ Deduplication logic
@@ -81,27 +117,26 @@ Un sistema minimale funzionante che dimostra:
 - **Testing:** Integration tests end-to-end
 - **Deliverable:** Carica ≥20 documenti test in Chroma
 
-#### Domenica Mattina 4h
-- ✅ Semantic search implementation
-- ✅ Query embedding (mock embeddings per MVP)
-- ✅ Similarity scoring
-- ✅ Result ranking e filtering
-- **Output:** Search endpoint in TaxAgent
-- **Testing:** Search accuracy tests
-- **Deliverable:** Ricerca semantica query "novità PEX" → risultati ordinati
-
 #### Domenica Pomeriggio 4h
-- ✅ Risk Analyzer core logic
+- ✅ Tax Reasoning modules
+  - favorable_position.py (pro thesis generation)
+  - contrary_position.py (contra thesis generation)
+  - risk_score.py (quantified risk assessment)
+  - checklist_generator.py
 - ✅ Pro/Contra thesis generation via LLM
 - ✅ Risk point extraction
-- ✅ Checklist generation
-- **Output:** `src/core/risk_analyzer.py`
+- **Output:** `src/reasoning/` - 4 files
 - **Testing:** Unit tests per logic
 - **Deliverable:** Analizza case study fiscale → output strutturato
 
 #### Domenica Sera 3h
+- ✅ Studio Memory (basic)
+  - clients.py (client profiles)
+  - cases.py (stored cases)
+  - precedents.py (reference collection)
+- ✅ Client Impact Analysis (mapper + analyzer)
 - ✅ CLI interface (click)
-- ✅ Commands: search, analyze, daily-briefing
+- ✅ Commands: search, analyze, briefing, clients
 - ✅ Output formatting (table + JSON)
 - ✅ Integration tests end-to-end
 - **Output:** `main.py` con CLI commands
@@ -110,7 +145,7 @@ Un sistema minimale funzionante che dimostra:
 
 #### Lunedì (Opzionale) 2h
 - ✅ Documentation completata
-- ✅ Setup guide 
+- ✅ Setup guide
 - ✅ Example queries
 - **PR finale:** Merge MVP in main
 
@@ -122,11 +157,20 @@ Un sistema minimale funzionante che dimostra:
 
 ### ✅ Core Features
 
-- [ ] **News Scraper**
-  - Scrape Agenzia Entrate interpelli
+- [ ] **4 Data Scrapers**
+  - Agenzia Entrate: Scrape interpelli
+  - Cassazione: Scrape court rulings
+  - Normattiva: Scrape legislation
+  - Sole24Ore: Scrape tax news
   - Estrae: titolo, data, numero, contenuto
   - Salva in vector store
   - Rate limiting rispettato
+
+- [ ] **Retrieval Layer**
+  - Chunker implemented (basic)
+  - Semantic search working
+  - Reranker interface defined (not implemented)
+  - Hybrid search interface defined (not implemented)
 
 - [ ] **Knowledge Base**
   - CRUD operations funzionanti
@@ -134,23 +178,28 @@ Un sistema minimale funzionante che dimostra:
   - Metadata searchable
   - Deduplicazione attiva
 
-- [ ] **Semantic Search**
-  - Query naturali supportate
-  - Top-5 results returned
-  - Similarity scores visibili
-  - Confidence scoring
-
-- [ ] **Risk Analyzer**
+- [ ] **Tax Reasoning**
   - Pro thesis generato via LLM
   - Contra thesis generato via LLM
+  - Risk score (0-100) generated
   - Risk points identificati
   - Checklist generata
   - Output strutturato (JSON)
+
+- [ ] **Studio Memory**
+  - Client profiles storage
+  - Cases/precedents storage
+  - Notes capability
+
+- [ ] **Client Impact Analysis**
+  - Identify affected clients
+  - Impact severity assessment
 
 - [ ] **CLI Interface**
   - `python main.py search --query "..."`
   - `python main.py analyze --issue "..."`
   - `python main.py briefing`
+  - `python main.py clients list`
   - Help documentation
 
 ### ✅ Quality Standards
@@ -163,6 +212,8 @@ Un sistema minimale funzionante che dimostra:
 - [ ] Setup guide funzionante
 - [ ] No hardcoded secrets
 - [ ] Logging su tutti i componenti
+- [ ] NO Weaviate dependency
+- [ ] NO Selenium dependency
 
 ### ✅ Repository
 
@@ -170,7 +221,7 @@ Un sistema minimale funzionante che dimostra:
 - [ ] CI/CD passing
 - [ ] .gitignore completo
 - [ ] .env.example fornito
-- [ ] requirements.txt aggiornato
+- [ ] requirements.txt aggiornato (Chroma, Requests, BeautifulSoup only)
 - [ ] LICENSE aggiunto
 
 ---
@@ -180,73 +231,93 @@ Un sistema minimale funzionante che dimostra:
 ```bash
 # Setup
 python -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # or .\venv\Scripts\activate on Windows
 pip install -r requirements.txt
 cp .env.example .env
 # [Edit .env with API keys]
 
-# Demo 1: Search
+# Demo 1: Search in Knowledge Base
 python main.py search --query "novità PEX 2024"
 # → Mostra 5 documenti più rilevanti con score
 
-# Demo 2: Analyze
+# Demo 2: Analyze Tax Issue
 python main.py analyze --issue "holding che rifattura costi: è deducibile?"
 # → Mostra:
 #    - Pro thesis
-#    - Contra thesis  
+#    - Contra thesis
+#    - Risk score (0-100)
 #    - Risk points
 #    - Checklist
+#    - Source citations
 
-# Demo 3: Briefing
+# Demo 3: Daily Briefing
 python main.py briefing
 # → Mostra notizie ultimo giorno classificate per tema
+
+# Demo 4: Client Management
+python main.py clients list
+python main.py clients add --name "Acme Corp" --sector "Manufacturing"
+
+# Demo 5: Check Client Impact
+python main.py analyze --issue "PEX changes" --check-clients
+# → Mostra affected clients
 ```
 
 ---
 
 ## Post-MVP Priorities (Next)
 
-### Phase 3a: Production Ready (Week 3)
+### Phase 3a: Enhanced Retrieval (Week 3)
+1. Reranker implementation (cross-encoder)
+2. Hybrid search (BM25 + semantic)
+3. Query expansion
+4. Advanced chunking strategies
+5. Source credibility scoring
+
+### Phase 3b: Advanced Reasoning (Week 3-4)
 1. Real embeddings (OpenAI / HuggingFace)
 2. Production vector DB setup
-3. Scraper multi-source
-4. Caching layer
-5. Error handling resilience
-6. Monitoring & logging
+3. Scraper multi-source expansion
+4. Advanced risk assessment
+5. Precedent pattern matching
 
-### Phase 3b: UX & Scale (Week 4)
+### Phase 3c: Studio Features (Week 4)
+1. Full precedents database
+2. Team collaboration features
+3. Annotation system
+4. Email notifications
+5. Slack integration
+
+### Phase 4: UX & Scale
 1. Web API (FastAPI)
 2. Web UI (React / Vue)
-3. Email briefing delivery
-4. Slack integration
-5. Document upload
-6. User preferences
-
-### Phase 4: Advanced Features
-1. RAG advanced (BM25 hybrid)
-2. Multi-language
-3. Document annotations
-4. Team collaboration
-5. Report generation
-6. Integration ecosystems
+3. Daily briefing delivery
+4. Document upload
+5. User preferences
+6. Advanced reporting
 
 ---
 
 ## Success Metrics
 
 **For MVP Success:**
-- ✅ All 5 features working
+- ✅ All 5 scrapers working (≥5 items each)
+- ✅ Retrieval layer working
+- ✅ Tax reasoning generating pro/contra/risk
+- ✅ Studio memory storing clients & cases
+- ✅ Client impact analysis identifying affected parties
 - ✅ Code quality passing
 - ✅ Zero showstopper bugs
 - ✅ Setup guide confirmed working
 - ✅ Demo script completo
 
-**For Product Success:**
+**For Product Success (Post-MVP):**
 - User can find relevant tax docs in <2 sec
 - Risk analysis takes <5 sec
 - Daily briefing generated <10 sec
 - Confidence scores ≥0.75 for relevant results
 - False positive rate <10%
+- User can track client impacts
 
 ---
 
@@ -256,10 +327,20 @@ python main.py briefing
 - Local machine sufficient (8GB RAM min)
 - Chroma local embedding
 - LLM via API (no GPU needed)
+- No infrastructure needed for MVP
 
 ### APIs
 - OpenAI API key (for LLM)
 - Optional: HuggingFace API (for embeddings)
+
+### Dependencies (MVP Stack)
+- `chroma-db` (vector store)
+- `requests` (HTTP client)
+- `beautifulsoup4` (HTML parsing)
+- `openai` (LLM provider)
+- `pydantic` (data validation)
+- `click` (CLI)
+- `python-dotenv` (configuration)
 
 ### Time Commitment
 - ~35-40 hours total
@@ -273,11 +354,13 @@ python main.py briefing
 
 | Risk | Mitigation |
 |------|------------|
-| Scope creep | Fixed feature set, aggressive MVP scope |
+| Scope creep | Fixed feature set, MVP-only for 2 weeks |
+| Scraper fragility | Mock scrapers + BeautifulSoup only (no JS) |
 | API rate limits | Built-in rate limiting, mock providers |
 | Integration issues | Heavy use of mocks and fixtures initially |
 | Time overruns | Clear hour allocations, daily check-ins |
 | Data quality | Test fixtures with known good data |
+| Complexity | Simplified architecture, no external DBs |
 
 ---
 
@@ -285,16 +368,18 @@ python main.py briefing
 
 ```
 main
-├── feat/initial-project-structure  (PR #1)
-├── feat/foundation-setup           (PR #2)
-├── feat/llm-provider               (PR #3)
-├── feat/vector-store               (PR #4)
-├── feat/data-models                (PR #5)
-├── feat/news-scraper               (PR #6)
-├── feat/knowledge-base             (PR #7)
-├── feat/semantic-search            (PR #8)
-├── feat/risk-analyzer              (PR #9)
-└── feat/cli-interface              (PR #10)
+├── feat/architecture-revision        (PR #1) ← You are here
+├── feat/foundation-setup             (PR #2)
+├── feat/llm-provider                 (PR #3)
+├── feat/vector-store                 (PR #4)
+├── feat/data-models                  (PR #5)
+├── feat/retrieval-layer              (PR #6)
+├── feat/specialized-scrapers         (PR #7)
+├── feat/knowledge-base               (PR #8)
+├── feat/tax-reasoning                (PR #9)
+├── feat/studio-memory                (PR #10)
+├── feat/client-impact                (PR #11)
+└── feat/cli-interface                (PR #12)
 
 ↓ Merge all into main
 
@@ -303,14 +388,138 @@ main (v0.1 MVP)
 
 ---
 
+## Repository Structure (Updated)
+
+```
+tax-junior-partner-ai/
+├── src/
+│   ├── core/
+│   │   └── tax_agent.py
+│   ├── retrieval/               ← NEW
+│   │   ├── chunker.py
+│   │   ├── semantic_search.py
+│   │   ├── reranker.py
+│   │   └── hybrid_search.py
+│   ├── reasoning/               ← NEW
+│   │   ├── favorable_position.py
+│   │   ├── contrary_position.py
+│   │   ├── risk_score.py
+│   │   ├── missing_documents.py
+│   │   └── checklist_generator.py
+│   ├── studio_memory/           ← NEW
+│   │   ├── clients.py
+│   │   ├── cases.py
+│   │   ├── precedents.py
+│   │   └── notes.py
+│   ├── briefing/                ← NEW
+│   │   ├── morning_brief.py
+│   │   └── relevance_scorer.py
+│   ├── client_impact/           ← NEW
+│   │   ├── client_mapper.py
+│   │   └── impact_analyzer.py
+│   ├── data/
+│   │   ├── vector_store.py
+│   │   ├── models.py
+│   │   └── knowledge_base.py
+│   ├── services/
+│   │   ├── llm_provider.py
+│   │   └── scrapers/            ← UPDATED (4 files instead of 1)
+│   │       ├── agenzia_entrate.py
+│   │       ├── cassazione.py
+│   │       ├── normattiva.py
+│   │       └── sole24ore.py
+│   └── utils/
+│       ├── config.py
+│       ├── logger.py
+│       └── exceptions.py
+├── tests/
+├── docs/
+│   ├── architecture.md          ← UPDATED
+│   └── mvp_roadmap.md           ← UPDATED
+├── config/
+│   └── settings.py
+├── requirements.txt              ← NO Weaviate, NO Selenium
+├── .env.example
+├── main.py
+└── README.md
+```
+
+---
+
+## Requirements.txt (MVP)
+
+```
+# Core
+python-dotenv>=0.19.0
+pydantic>=1.9.0
+click>=8.0.0
+
+# LLM & Embeddings
+openai>=0.27.0
+
+# Vector Store
+chroma-db>=0.3.0  # No Weaviate
+
+# Web & Parsing
+requests>=2.27.0
+beautifulsoup4>=4.10.0  # No Selenium
+lxml>=4.9.0
+
+# Async
+aiohttp>=3.8.0
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.18.0
+pytest-cov>=3.0.0
+
+# Dev
+black>=22.0.0
+mypy>=0.930
+flake8>=4.0.0
+isort>=5.10.0
+```
+
+---
+
 ## Notes & Considerations
 
 - **Start small:** Mock providers permettono testing senza API calls
+- **Scrapers:** Use only BeautifulSoup for static HTML (no JS rendering)
 - **Test-driven:** Scrivere tests mentre sviluppi
 - **Documentation:** Aggiorna docs mentre avanzano le features
 - **Commits:** Frequent, small, meaningful commits
 - **Review:** Self-review prima di PR
 - **Flexibility:** Adjust timeline if needed, ma mantieni feature set
+- **No External Infra:** Everything local for MVP (Chroma embedded)
+
+---
+
+## Decision Log
+
+### Architecture Decisions
+
+1. **Removed Weaviate from MVP**
+   - Reason: Chroma sufficient for local development
+   - Future: Can add Weaviate post-MVP for scaling
+   - Impact: Simpler setup, faster iteration
+
+2. **Removed Selenium from MVP**
+   - Reason: Main sources (Agenzia, Cassazione) serve static HTML
+   - Approach: BeautifulSoup + Requests only
+   - Future: Add Selenium if JavaScript-heavy sources needed
+   - Impact: No browser automation overhead
+
+3. **Added Specialized Scrapers**
+   - Reason: Better code organization and maintainability
+   - Approach: 4 separate modules, shared extraction logic
+   - Impact: Easy to add new sources, cleaner imports
+
+4. **New Modules Added**
+   - Retrieval Layer: Foundation for advanced search
+   - Tax Reasoning: Core differentiator vs generic chatbot
+   - Studio Memory: Personalization & learning
+   - Client Impact: Proactive advisory capability
 
 ---
 
