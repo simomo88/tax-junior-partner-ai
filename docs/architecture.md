@@ -11,58 +11,58 @@
 Tax Junior Partner AI è architettato come un sistema modulare specializzato per il ragionamento fiscale:
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        User Interface                               │
-│                   (CLI / Web / Chat API)                            │
-└──────────────────────┬──────────────────────────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────────────────────────┐
-│                    Tax Agent (Orchestrator)                         │
-│              Coordina flusso di ragionamento fiscale                │
-└──────────────────┬──────────────────┬──────────────────┬───────────┘
-                   │                  │                  │
-      ┌────────────▼────────┐  ┌──────▼──────────┐ ┌────▼────────────┐
-      │  Retrieval Layer   │  │  Tax Reasoning  │ │ Studio Memory   │
-      │                    │  │                 │ │                 │
-      │ - Chunker          │  │ - Pro/Contra    │ │ - Clients       │
-      │ - Semantic Search  │  │ - Risk Scoring  │ │ - Cases         │
-      │ - Reranker         │  │ - Missing Docs  │ │ - Precedents    │
-      │ - Hybrid Search    │  │ - Checklists    │ │ - Notes         │
-      └────────────┬────────┘  └────────┬───────┘ └────┬────────────┘
-                   │                    │              │
-      ┌────────────▼──────────────────────┼──────────────┘
-      │         Knowledge Base            │
-      │   (Vector Store + Metadata)       │
-      │   - Chroma (Embedded)             │
-      │   - Document Repository           │
-      │   - Metadata Index                │
-      └────────────┬───────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        User Interface                                           │
+│                   (CLI / Web / Chat API)                                        │
+└─────────────────────────────────────┬──────────────────────────────────────────┘
+                                      │
+┌─────────────────────────────────────▼──────────────────────────────────────────┐
+│                    Tax Agent (Orchestrator)                                     │
+│              Coordina flusso di ragionamento fiscale                            │
+└──────────────────────┬──────────────────┬──────────────────┬───────────────────┘
+                       │                  │                  │
+      ┌────────────────▼────────┐  ┌─────▼──────────────┐ ┌──▼────────────────┐
+      │  Retrieval Layer        │  │  Tax Reasoning     │ │ Studio Memory      │
+      │                         │  │                    │ │                    │
+      │ - Chunker               │  │ - Pro/Contra       │ │ - Clients          │
+      │ - Semantic Search       │  │ - Risk Scoring     │ │ - Cases            │
+      │ - Reranker              │  │ - Missing Docs     │ │ - Precedents       │
+      │ - Hybrid Search         │  │ - Checklists       │ │ - Notes            │
+      └────────────┬────────────┘  └─────┬──────────────┘ └──┬────────────────┘
+                   │                      │                   │
+      ┌────────────▼──────────────────────▼───────────────────▼────────┐
+      │         Knowledge Base            │                           │
+      │   (Vector Store + Metadata)       │   Client Impact Analysis  │
+      │   - Chroma (Embedded)             │   - Client Mapper         │
+      │   - Document Repository           │   - Impact Analyzer       │
+      │   - Metadata Index                │                           │
+      └────────────┬──────────────────────┴───────────────────────────┘
                    │
-      ┌────────────▼──────────────────────────┐
-      │      Morning Briefing Module          │
-      │                                       │
-      │ - Daily Briefing Generator           │
-      │ - Relevance Scoring                  │
-      │ - Client Impact Analysis             │
-      └────────────┬───────────────────────────┘
+      ┌────────────▼──────────────────────────────────┐
+      │       Morning Briefing Module                 │
+      │                                               │
+      │ - Daily Briefing Generator                    │
+      │ - Relevance Scoring                           │
+      │ - Priority Ranking                            │
+      └────────────┬──────────────────────────────────┘
                    │
-      ┌────────────▼──────────────────────────┐
-      │    Data Collection & Normalization    │
-      │                                       │
-      │  services/scrapers/                  │
-      │  ├── agenzia_entrate.py             │
-      │  ├── cassazione.py                  │
-      │  ├── normattiva.py                  │
-      │  └── sole24ore.py                   │
-      └────────────┬───────────────────────────┘
+      ┌────────────▼──────────────────────────────────┐
+      │    Data Collection & Normalization            │
+      │                                               │
+      │  services/scrapers/                           │
+      │  ├── agenzia_entrate.py                       │
+      │  ├── cassazione.py                            │
+      │  ├── normattiva.py                            │
+      │  └── sole24ore.py                             │
+      └────────────┬──────────────────────────────────┘
                    │
-      ┌────────────▼──────────────────────────┐
-      │      LLM & Services Layer            │
-      │                                       │
-      │  - LLM Provider (OpenAI/Anthropic)  │
-      │  - Embeddings (OpenAI/HuggingFace)  │
-      │  - External APIs                    │
-      └─────────────────────────────────────┘
+      ┌────────────▼──────────────────────────────────┐
+      │      LLM & Services Layer                     │
+      │                                               │
+      │  - LLM Provider (OpenAI/Anthropic)            │
+      │  - Embeddings (OpenAI/HuggingFace)            │
+      │  - External APIs                              │
+      └───────────────────────────────────────────────┘
 ```
 
 ---
