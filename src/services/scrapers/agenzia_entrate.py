@@ -11,9 +11,8 @@ Improvements:
 import asyncio
 import json
 import logging
-import random
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple
 from dataclasses import dataclass, asdict
@@ -61,23 +60,12 @@ class RateLimiter:
 
 class AgenziaScraper:
     """Scraper for Agenzia Entrate tax documents."""
-
-    BASE_URL = "https://www.agenziaentrate.gov.it/portale/"
-    INTERPELLI_URL = "https://www.agenziaentrate.gov.it/portale/normativa-e-prassi/risposte-agli-interpelli/interpelli"
-    CIRCOLARI_URL = "https://www.agenziaentrate.gov.it/portale/normativa-e-prassi/circolari"
-    RISOLUZIONI_URL = "https://www.agenziaentrate.gov.it/portale/normativa-e-prassi/risoluzioni"
-
-    DEFAULT_HEADERS = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/120.0.0.0 Safari/537.36"
-        ),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Referer": "https://www.google.com/",
-    }
-
+    
+    BASE_URL = "https://www.agenziaentrate.gov.it"
+    INTERPELLI_URL = urljoin(BASE_URL, "/portale/normativa-e-prassi/risposte-agli-interpelli/interpelli")
+    CIRCOLARI_URL = urljoin(BASE_URL, "/portale/normativa-e-prassi/circolari")
+    RISOLUZIONI_URL = urljoin(BASE_URL, "/portale/normativa-e-prassi/risoluzioni")
+    
     def __init__(
         self,
         output_dir: Path = Path("data/raw/agenzia_entrate"),
@@ -179,65 +167,85 @@ class AgenziaScraper:
         except Exception as e:
             logger.error(f"Error saving document {doc.url}: {e}")
             return False
+    
+    async def _parse_interpelli(self, html: str) -> List[TaxDocument]:
+        """Parse interpelli from HTML.
 
-    def _extract_date_and_number_from_text(self, text: str) -> Tuple[str, str]:
-        """Try to find a date or number in a piece of text using regex heuristics."""
-        if not text:
-            return "", ""
-        # Look for common Italian date formats or year
-        date_match = re.search(r"\d{1,2}/\d{1,2}/\d{4}|\d{1,2}\s+[A-Za-zàèéìòù]+\.?\s+\d{4}|\d{4}", text)
-        num_match = re.search(r"[Rr]isoluzione\s+n\.?\s*\d+|[Cc]ircolare\s+n\.?\s*\d+|n\.?\s*\d+/\d{4}", text)
-        date = date_match.group(0).strip() if date_match else ""
-        number = num_match.group(0).strip() if num_match else ""
-        return date, number
+        Args:
+            html: HTML content
 
-    async def _parse_documents_generic(self, html: str, doc_type: str) -> List[TaxDocument]:
-        """Generic parser that finds PDF/document links and extracts nearby metadata."""
-        documents: List[TaxDocument] = []
+        Returns:
+            List of TaxDocument objects
+        """
+
+        documents = []
+
         try:
             soup = BeautifulSoup(html, "html.parser")
 
-            # Strategy:
-            # - Find links (<a href=...>) that point to PDFs or to pages that likely contain documents.
-            # - For each link, extract title from the link text or nearby header tags.
-            # - Attempt to find a date/number in the surrounding text.
+            for link in soup.find_all("a", href=True):
 
-            candidates = []
-            for a in soup.find_all("a", href=True):
-                href = a["href"]
-                href_l = href.lower()
-                # Heuristics: direct PDF or path that usually contains documents
-                if href_l.endswith(".pdf") or "/documenti/" in href_l or "/download/" in href_l or "pdf" in href_l:
-                    candidates.append(a)
+                href = link["href"]
 
-            # De-duplicate by resolved absolute URL
-            seen = set()
-            for a in candidates:
-                raw_href = a["href"]
-                url = raw_href
-                if not url.startswith("http"):
-                    url = urljoin(self.BASE_URL, url)
-
-                if url in seen:
+                if ".pdf" not in href.lower():
                     continue
-                seen.add(url)
 
-                title = a.get_text(strip=True) or a.get("title") or ""
-                # If link text is empty, try nearby headers
+                title = link.get_text(" ", strip=True)
+
                 if not title:
-                    # Look for parent header tags up to a few levels
-                    p = a.parent
-                    title_found = ""
-                    for ancestor in (p, p.parent if p else None, (p.parent.parent if p and p.parent else None)):
-                        if ancestor:
-                            header = ancestor.find(re.compile("^h[1-6]$"))
-                            if header:
-                                title_found = header.get_text(strip=True)
-                                break
-                    title = title_found or title
+                    continue
 
-                # gather surrounding text
-                surrounding = ""
+                strong = link.find_previous("strong")
+
+                number = ""
+                pub_date = ""
+
+                if strong:
+                    text = strong.get_text(" ", strip=True)
+
+                    m = re.search(
+                        r"Risposta\s+n\.\s*(\d+)\s+del\s+([0-9/]+)",
+                        text,
+                        re.IGNORECASE,
+                    )
+
+                    if m:
+                        number = m.group(1)
+                        pub_date = m.group(2)
+
+                documents.append(
+                    TaxDocument(
+                        title=title,
+                        number=number or "unknown",
+                        publication_date=pub_date,
+                        url=href,
+                        doc_type="interpello",
+                    )
+                )
+
+        except Exception as e:
+            logger.error(f"Error parsing interpelli HTML: {e}")
+
+        logger.info(f"Parsed {len(documents)} interpelli")
+
+        return documents
+
+    async def _parse_circolari(self, html: str) -> List[TaxDocument]:
+        """Parse circolari from HTML.
+        
+        Args:
+            html: HTML content
+            
+        Returns:
+            List of TaxDocument objects
+        """
+        documents = []
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+            # This is a mock implementation - adjust selectors based on actual HTML structure
+            items = soup.find_all("div", class_="circolare-item")  # Adjust selector
+            
+            for item in items:
                 try:
                     surrounding = " ".join(a.parent.get_text(" ", strip=True).split()) if a.parent else ""
                 except Exception:
