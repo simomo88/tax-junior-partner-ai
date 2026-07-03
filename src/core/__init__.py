@@ -1,1 +1,1 @@
-"""Core business logic modules."""
+"""Core business logic package."""
